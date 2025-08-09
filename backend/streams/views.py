@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from .models import Stream
 from .serializers import StreamSerializer, StreamCreateSerializer
 import subprocess
@@ -106,4 +107,27 @@ class StreamDetailView(BaseStreamView, RetrieveDestroyAPIView):
 @api_view(['GET'])
 def health_check(request):
     """Health check endpoint"""
-    return Response({'status': 'healthy'}, status=status.HTTP_200_OK)
+    try:
+        # Try to access the database
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return Response({
+        'status': 'healthy',
+        'database': db_status,
+        'timestamp': timezone.now().isoformat()
+    }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def test_view(request):
+    """Simple test endpoint"""
+    return Response({
+        'message': 'API is working!',
+        'method': request.method,
+        'path': request.path,
+        'timestamp': timezone.now().isoformat()
+    }, status=status.HTTP_200_OK)

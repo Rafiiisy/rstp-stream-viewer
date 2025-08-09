@@ -9,8 +9,11 @@ django.setup()
 
 from streams.routing import websocket_urlpatterns
 
+# Create the ASGI application
+django_asgi_app = get_asgi_application()
+
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
             websocket_urlpatterns
