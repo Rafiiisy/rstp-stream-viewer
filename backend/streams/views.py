@@ -6,6 +6,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
 from django.shortcuts import get_object_or_404
 from .models import Stream
 from .serializers import StreamSerializer, StreamCreateSerializer
+from .thumbnail_service import thumbnail_service
 import subprocess
 import re
 
@@ -107,3 +108,72 @@ class StreamDetailView(BaseStreamView, RetrieveDestroyAPIView):
 def health_check(request):
     """Health check endpoint"""
     return Response({'status': 'healthy'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def stream_thumbnail(request, stream_id):
+    """Get thumbnail for a specific stream"""
+    try:
+        stream = get_object_or_404(Stream, id=stream_id, is_active=True)
+        force_refresh = request.GET.get('refresh', 'false').lower() == 'true'
+        
+        thumbnail_data = thumbnail_service.get_thumbnail(
+            str(stream.id), 
+            stream.url, 
+            force_refresh=force_refresh
+        )
+        
+        if thumbnail_data:
+            return Response(thumbnail_data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'error': 'Failed to generate thumbnail'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+    except Stream.DoesNotExist:
+        return Response(
+            {'error': 'Stream not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+def refresh_thumbnail(request, stream_id):
+    """Force refresh thumbnail for a specific stream"""
+    try:
+        stream = get_object_or_404(Stream, id=stream_id, is_active=True)
+        
+        # Clear cache for this stream
+        thumbnail_service.clear_cache(str(stream.id))
+        
+        return Response(
+            {'message': 'Thumbnail cache cleared, next request will generate new thumbnail'}, 
+            status=status.HTTP_200_OK
+        )
+            
+    except Stream.DoesNotExist:
+        return Response(
+            {'error': 'Stream not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+def thumbnail_cache_stats(request):
+    """Get thumbnail cache statistics"""
+    try:
+        stats = thumbnail_service.get_cache_stats()
+        return Response(stats, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

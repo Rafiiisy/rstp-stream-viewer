@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EditStreamModal from './EditStreamModal';
+import StreamThumbnail from './StreamThumbnail';
 import { config } from '../config';
 
 function StreamTile({ stream, onRemove, onEdit }) {
@@ -11,6 +12,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [frameBuffer, setFrameBuffer] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showThumbnail, setShowThumbnail] = useState(true);
   
   const canvasRef = useRef(null);
   const playerRef = useRef(null);
@@ -192,6 +194,12 @@ function StreamTile({ stream, onRemove, onEdit }) {
             }, 'image/jpeg', 0.7);
           }
         },
+        onPlay: () => {
+          console.log('JSMpeg player started');
+          setStatus('playing');
+          setIsPlaying(true);
+          setShowThumbnail(false); // Hide thumbnail when video starts playing
+        },
         onPause: () => {
           console.log('JSMpeg player paused');
         },
@@ -238,6 +246,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
   const handlePlay = () => {
     setStatus('connecting');
     setErrorMessage('');
+    setShowThumbnail(false); // Hide thumbnail when starting video
     cleanupPlayer(); // Clean up any existing player
     connectWebSocket();
   };
@@ -245,6 +254,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
   const handleStop = () => {
     setStatus('stopped');
     setErrorMessage('');
+    setShowThumbnail(true); // Show thumbnail when stopping video
     if (wsRef.current) {
       wsRef.current.send(JSON.stringify({ action: 'stop' }));
       wsRef.current.close();
@@ -354,6 +364,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
   }, []);
 
   const getStatusText = () => {
+    console.log('Current status:', status); // Debug log
     switch (status) {
       case 'connecting':
         return 'Connecting...';
@@ -414,9 +425,35 @@ function StreamTile({ stream, onRemove, onEdit }) {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Show thumbnail when not playing */}
+        {showThumbnail && (
+          <StreamThumbnail
+            streamId={stream.id}
+            streamUrl={stream.url}
+            className="stream-thumbnail-container"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1
+            }}
+            onLoad={(data) => {
+              console.log('Thumbnail loaded for stream:', stream.id);
+            }}
+            onError={(error) => {
+              console.error('Thumbnail error for stream:', stream.id, error);
+            }}
+          />
+        )}
+        
         <canvas
           ref={canvasRef}
           className="stream-video"
+          style={{
+            display: showThumbnail ? 'none' : 'block'
+          }}
         />
         
         <div className={getStatusClass()}>
@@ -453,7 +490,8 @@ function StreamTile({ stream, onRemove, onEdit }) {
         )}
         
         {status === 'stopped' && (
-          <div className="stream-overlay">
+          <div className="stream-overlay" style={{ zIndex: 10 }}>
+            {console.log('Rendering play button - status is stopped')}
             <button
               className="control-button play-button"
               onClick={handlePlay}

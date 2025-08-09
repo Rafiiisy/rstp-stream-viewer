@@ -19,6 +19,9 @@ export const config = {
   API_ENDPOINTS: {
     STREAMS: `${API_BASE_URL}/api/streams/`,
     HEALTH: `${API_BASE_URL}/api/health/`,
+    THUMBNAIL: (streamId) => `${API_BASE_URL}/api/streams/${streamId}/thumbnail/`,
+    THUMBNAIL_REFRESH: (streamId) => `${API_BASE_URL}/api/streams/${streamId}/thumbnail/refresh/`,
+    THUMBNAIL_CACHE_STATS: `${API_BASE_URL}/api/thumbnails/cache/stats/`,
   },
   WS_ENDPOINTS: {
     STREAM: (id, videoOnly = false, clientId = null) => {
