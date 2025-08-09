@@ -46,10 +46,10 @@ body {
 }
 
 .logo-image {
-  height: 220px;
+  height: 120px;
   width: auto;
   border-radius: 4px;
-  margin: -50px 0;
+  margin: -30px 0;
 }
 
 .logo-subtitle {
