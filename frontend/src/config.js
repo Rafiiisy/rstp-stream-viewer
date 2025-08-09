@@ -7,16 +7,24 @@ const WS_BASE_URL = process.env.REACT_APP_API_ENDPOINT
   ? `wss://${process.env.REACT_APP_API_ENDPOINT}` 
   : 'ws://localhost:8000';
 
+// Generate unique client ID for each stream instance
+const generateClientId = () => {
+  return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export const config = {
   API_BASE_URL,
   WS_BASE_URL,
+  generateClientId,
   API_ENDPOINTS: {
     STREAMS: `${API_BASE_URL}/api/streams/`,
     HEALTH: `${API_BASE_URL}/api/health/`,
   },
   WS_ENDPOINTS: {
-    STREAM: (id, videoOnly = false) => 
-      `${WS_BASE_URL}/ws/stream?id=${id}&video_only=${videoOnly}`,
+    STREAM: (id, videoOnly = false, clientId = null) => {
+      const baseUrl = `${WS_BASE_URL}/ws/stream?id=${id}&video_only=${videoOnly}`;
+      return clientId ? `${baseUrl}&client_id=${clientId}` : baseUrl;
+    },
   }
 };
 

@@ -9,10 +9,6 @@ function StreamTile({ stream, onRemove, onEdit }) {
   const [isPaused, setIsPaused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [streamStartTime, setStreamStartTime] = useState(null);
-  const [streamDuration, setStreamDuration] = useState(0);
-  const [sliderPosition, setSliderPosition] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
   const [frameBuffer, setFrameBuffer] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   
@@ -22,13 +18,14 @@ function StreamTile({ stream, onRemove, onEdit }) {
   const isRewindingRef = useRef(false);
   const originalWriteRef = useRef(null);
   const lastFrameTimeRef = useRef(0);
+  const clientIdRef = useRef(config.generateClientId());
 
   const connectWebSocket = () => {
     if (wsRef.current) {
       wsRef.current.close();
     }
 
-    const wsUrl = stream.ws_url || config.WS_ENDPOINTS.STREAM(stream.id, false);
+    const wsUrl = stream.ws_url || config.WS_ENDPOINTS.STREAM(stream.id, false, clientIdRef.current);
     console.log('Connecting to WebSocket:', wsUrl);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -128,7 +125,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
       }
 
       // Create a separate WebSocket URL for JSMpeg with video_only=true
-      const wsUrl = config.WS_ENDPOINTS.STREAM(stream.id, true);
+      const wsUrl = config.WS_ENDPOINTS.STREAM(stream.id, true, clientIdRef.current);
       
       console.log('Initializing JSMpeg with URL:', wsUrl);
       console.log('Canvas element:', canvasRef.current);
@@ -161,50 +158,38 @@ function StreamTile({ stream, onRemove, onEdit }) {
         },
         onSourceEstablished: () => {
           console.log('JSMpeg source established');
-          setStreamStartTime(Date.now());
-          setStreamDuration(0);
-          setSliderPosition(0);
           setFrameBuffer([]);
         },
         onSourceCompleted: () => {
           console.log('JSMpeg source completed');
         },
         onDecode: (decoder, time) => {
-          if (!isDragging && !isRewindingRef.current) {
-            // Update stream duration and slider position
-            if (streamStartTime) {
-              const currentDuration = (Date.now() - streamStartTime) / 1000;
-              setStreamDuration(currentDuration);
-              setSliderPosition(currentDuration);
-            }
+          // Store frame every 2 seconds for rewind buffer
+          if (time - lastFrameTimeRef.current >= 2.0) {
+            lastFrameTimeRef.current = time;
             
-            // Store frame every 2 seconds for rewind buffer
-            if (time - lastFrameTimeRef.current >= 2.0) {
-              lastFrameTimeRef.current = time;
-              
-              canvasRef.current.toBlob((blob) => {
-                if (blob) {
-                  const frameData = {
-                    time: time,
-                    timestamp: Date.now(),
-                    canvasData: URL.createObjectURL(blob)
-                  };
-                  
-                  setFrameBuffer(prev => {
-                    const newBuffer = [...prev, frameData];
-                    // Keep only last 15 frames (30 seconds at 2fps)
-                    if (newBuffer.length > 15) {
-                      // Clean up old frame
-                      const oldFrame = newBuffer.shift();
-                      if (oldFrame.canvasData) {
-                        URL.revokeObjectURL(oldFrame.canvasData);
-                      }
+            canvasRef.current.toBlob((blob) => {
+              if (blob) {
+                const frameData = {
+                  time: time,
+                  timestamp: Date.now(),
+                  canvasData: URL.createObjectURL(blob)
+                };
+                
+                setFrameBuffer(prev => {
+                  const newBuffer = [...prev, frameData];
+                  // Keep only last 15 frames (30 seconds at 2fps)
+                  if (newBuffer.length > 15) {
+                    // Clean up old frame
+                    const oldFrame = newBuffer.shift();
+                    if (oldFrame.canvasData) {
+                      URL.revokeObjectURL(oldFrame.canvasData);
                     }
-                    return newBuffer;
-                  });
-                }
-              }, 'image/jpeg', 0.7);
-            }
+                  }
+                  return newBuffer;
+                });
+              }
+            }, 'image/jpeg', 0.7);
           }
         },
         onPause: () => {
@@ -246,10 +231,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
       }
     });
     
-    // Reset stream tracking
-    setStreamStartTime(null);
-    setStreamDuration(0);
-    setSliderPosition(0);
+    // Reset frame buffer
     setFrameBuffer([]);
   };
 
@@ -311,91 +293,23 @@ function StreamTile({ stream, onRemove, onEdit }) {
     if (!player) return;
 
     if (isPaused) {
-      // Resume to LIVE (only when slider is at LIVE)
-      if (sliderPosition >= streamDuration - 1) {
-        unmuteJSMpegIngest();
-        isRewindingRef.current = false;
-        setIsPaused(false);
-        player.play();
-        console.log('Resumed LIVE');
-      } else {
-        // Still rewound — stay paused showing buffered frames
-        console.log('Still rewound, not resuming live');
-      }
+      // Resume
+      unmuteJSMpegIngest();
+      isRewindingRef.current = false;
+      setIsPaused(false);
+      player.play();
+      console.log('Resumed');
     } else {
       // Pause: freeze the current frame and stop ingest
       setIsPaused(true);
       isRewindingRef.current = true;
       muteJSMpegIngest();
       player.pause(); // stop JSMpeg loop; socket remains open
-      console.log('Paused at time:', sliderPosition);
+      console.log('Paused');
     }
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
-  const handleTimelineChange = (e) => {
-    const player = playerRef.current;
-    if (!player) return;
-
-    const newPosition = parseFloat(e.target.value);
-    setSliderPosition(newPosition);
-
-    try {
-      // Check if seeking to a position within the last 30 seconds (buffer)
-      const bufferStart = Math.max(0, streamDuration - 30);
-      const isWithinBuffer = newPosition >= bufferStart && newPosition <= streamDuration;
-
-      if (isWithinBuffer && frameBuffer.length > 0) {
-        // Calculate rewind time from current live position
-        const rewindTime = streamDuration - newPosition;
-        
-        if (rewindTime > 0 && rewindTime <= 30) {
-          // Enter rewind mode
-          if (!isPaused) {
-            setIsPaused(true);
-            isRewindingRef.current = true;
-            muteJSMpegIngest();
-            player.pause();
-          }
-          
-          // Find the closest frame to the rewind time
-          const frameIndex = Math.floor((rewindTime / 30) * frameBuffer.length);
-          const targetFrame = frameBuffer[frameBuffer.length - 1 - frameIndex];
-          
-          if (targetFrame && targetFrame.canvasData) {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = canvasRef.current;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
-            img.src = targetFrame.canvasData;
-          }
-        }
-      } else {
-        // Resume live playback
-        unmuteJSMpegIngest();
-        isRewindingRef.current = false;
-        setIsPaused(false);
-        player.play();
-      }
-    } catch (err) {
-      console.error('Error handling timeline change:', err);
-    }
-  };
-
-  const handleTimelineMouseDown = () => {
-    setIsDragging(true);
-  };
-
-  const handleTimelineMouseUp = () => {
-    setIsDragging(false);
-  };
 
   const handleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -562,26 +476,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
           </div>
         )}
         
-        {/* Timeline overlay */}
-        {isPlaying && isHovered && (
-          <div className="timeline-overlay">
-            <div className="timeline-container">
-              <input
-                type="range"
-                min="0"
-                max={Math.max(streamDuration, 30)}
-                value={sliderPosition}
-                onChange={handleTimelineChange}
-                onMouseDown={handleTimelineMouseDown}
-                onMouseUp={handleTimelineMouseUp}
-                className="timeline-slider"
-              />
-              <div className="timeline-time">
-                {sliderPosition >= streamDuration - 1 ? 'LIVE' : `${formatTime(sliderPosition)} / ${formatTime(streamDuration)}`}
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
     

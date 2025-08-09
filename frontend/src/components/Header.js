@@ -6,7 +6,6 @@ function Header() {
       <div className="header-content">
         <div>
           <div className="logo">RSTPViewer</div>
-          <div className="logo-subtitle">Real-time RTSP Stream Viewer</div>
         </div>
       </div>
     </header>

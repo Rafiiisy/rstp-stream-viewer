@@ -39,14 +39,18 @@ class StreamInfo:
     
     async def add_connection(self, connection):
         self.connections.add(connection)
-        logger.info(f"Added connection to stream {self.stream_id} - total connections: {len(self.connections)}")
+        client_id = getattr(connection, 'client_id', 'unknown')
+        video_only = getattr(connection, 'video_only', False)
+        logger.info(f"Added connection to stream {self.stream_id} (client: {client_id}, video_only: {video_only}) - total connections: {len(self.connections)}")
         if not self.is_playing:
             logger.info(f"Starting stream for {self.stream_id} - no connections were playing")
             await self.start()
     
     async def remove_connection(self, connection):
         self.connections.discard(connection)
-        logger.info(f"Removed connection from stream {self.stream_id} - total connections: {len(self.connections)}")
+        client_id = getattr(connection, 'client_id', 'unknown')
+        video_only = getattr(connection, 'video_only', False)
+        logger.info(f"Removed connection from stream {self.stream_id} (client: {client_id}, video_only: {video_only}) - total connections: {len(self.connections)}")
         if not self.connections and self.is_playing:
             logger.info(f"Stopping stream for {self.stream_id} - no more connections")
             await self.stop()
@@ -190,8 +194,9 @@ class StreamConsumer(AsyncWebsocketConsumer):
             self.stream_id = params.get('id')
             self.rtsp_url = params.get('url')
             self.video_only = params.get('video_only', 'false').lower() == 'true'
+            self.client_id = params.get('client_id', 'unknown')
             
-            logger.info(f"WebSocket connection attempt - stream_id: {self.stream_id}, video_only: {self.video_only}")
+            logger.info(f"WebSocket connection attempt - stream_id: {self.stream_id}, client_id: {self.client_id}, video_only: {self.video_only}")
             
             if not self.stream_id and not self.rtsp_url:
                 await self.close(code=4000, reason="Missing stream ID or URL")
@@ -221,7 +226,7 @@ class StreamConsumer(AsyncWebsocketConsumer):
             
             if self.video_only:
                 # For JSMpeg connections, start streaming immediately
-                logger.info(f"JSMpeg WebSocket connected for stream: {self._mask_url(self.rtsp_url)}")
+                logger.info(f"JSMpeg WebSocket connected for stream: {self._mask_url(self.rtsp_url)}, client: {self.client_id}")
                 # The stream will be started automatically by the shared manager
             else:
                 # For control connections, send initial status
@@ -229,7 +234,7 @@ class StreamConsumer(AsyncWebsocketConsumer):
                     'type': 'status',
                     'phase': 'connected'
                 }))
-                logger.info(f"Control WebSocket connected for stream: {self._mask_url(self.rtsp_url)}")
+                logger.info(f"Control WebSocket connected for stream: {self._mask_url(self.rtsp_url)}, client: {self.client_id}")
             
         except Exception as e:
             logger.error(f"Error in WebSocket connect: {e}")
@@ -241,7 +246,7 @@ class StreamConsumer(AsyncWebsocketConsumer):
             if self.stream_info:
                 await self.stream_info.remove_connection(self)
             
-            logger.info(f"WebSocket disconnected for stream: {self._mask_url(self.rtsp_url) if self.rtsp_url else 'unknown'}")
+            logger.info(f"WebSocket disconnected for stream: {self._mask_url(self.rtsp_url) if self.rtsp_url else 'unknown'}, client: {getattr(self, 'client_id', 'unknown')}")
             
         except Exception as e:
             logger.error(f"Error in WebSocket disconnect: {e}")
