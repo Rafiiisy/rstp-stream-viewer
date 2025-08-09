@@ -1,8 +1,9 @@
 FROM python:3.11-slim
 
-# Install system dependencies including FFmpeg
+# Install system dependencies including FFmpeg and PostgreSQL client
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
