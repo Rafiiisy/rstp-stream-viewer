@@ -40,9 +40,16 @@ body {
 }
 
 .logo {
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.logo-image {
+  height: 220px;
+  width: auto;
+  border-radius: 4px;
+  margin: -50px 0;
 }
 
 .logo-subtitle {
@@ -737,6 +744,10 @@ body {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
+  }
+  
+  .logo-image {
+    height: 80px;
   }
   
   .stream-header {
