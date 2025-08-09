@@ -98,6 +98,10 @@ class StreamInfo:
                 if chunk_count % 100 == 0:  # Log every 100 chunks
                     logger.info(f"Stream {self.stream_id}: sent {chunk_count} chunks, chunk size: {len(chunk)} bytes")
                 
+                # Log first few chunks for debugging
+                if chunk_count <= 5:
+                    logger.info(f"Stream {self.stream_id}: chunk {chunk_count}, size: {len(chunk)} bytes, first 16 bytes: {chunk[:16].hex()}")
+                
                 # Send to all video-only connections
                 video_connections = [conn for conn in self.connections if conn.video_only]
                 control_connections = [conn for conn in self.connections if not conn.video_only]
@@ -179,6 +183,10 @@ class StreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Handle WebSocket connection"""
         try:
+            # Log the connection attempt
+            logger.info(f"WebSocket connection attempt from {self.scope.get('client', ['unknown'])[0]}")
+            logger.info(f"Headers: {dict(self.scope.get('headers', []))}")
+            
             # Get stream ID or URL from query parameters
             query_string = self.scope.get('query_string', b'').decode('utf-8')
             params = dict(item.split('=') for item in query_string.split('&') if '=' in item)
@@ -190,6 +198,7 @@ class StreamConsumer(AsyncWebsocketConsumer):
             logger.info(f"WebSocket connection attempt - stream_id: {self.stream_id}, video_only: {self.video_only}")
             
             if not self.stream_id and not self.rtsp_url:
+                logger.error("Missing stream ID or URL")
                 await self.close(code=4000, reason="Missing stream ID or URL")
                 return
             
@@ -197,17 +206,20 @@ class StreamConsumer(AsyncWebsocketConsumer):
             if self.stream_id:
                 stream = await self._get_stream(self.stream_id)
                 if not stream:
+                    logger.error(f"Stream not found: {self.stream_id}")
                     await self.close(code=4004, reason="Stream not found")
                     return
                 self.rtsp_url = stream.url
             
             # Validate RTSP URL
             if not self.rtsp_url.startswith('rtsp://'):
+                logger.error(f"Invalid RTSP URL: {self.rtsp_url}")
                 await self.close(code=4000, reason="Invalid RTSP URL")
                 return
             
             # Accept the connection
             await self.accept()
+            logger.info("WebSocket connection accepted")
             
             # Get or create shared stream info
             self.stream_info = await stream_manager.get_or_create_stream(self.stream_id or 'direct', self.rtsp_url)
@@ -229,6 +241,8 @@ class StreamConsumer(AsyncWebsocketConsumer):
             
         except Exception as e:
             logger.error(f"Error in WebSocket connect: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             await self.close(code=1011, reason="Internal server error")
 
     async def disconnect(self, close_code):

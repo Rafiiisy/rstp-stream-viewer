@@ -32,9 +32,11 @@ class FFmpegProcess:
             'ffmpeg',
             '-rtsp_transport', 'tcp',  # Use TCP for better reliability
             '-i', self.rtsp_url,
-            '-f', 'mpeg1video',  # Output format for JSMpeg (MPEG-1)
+            '-f', 'mpegts',  # MPEG-TS format for better compatibility
             '-codec:v', 'mpeg1video',  # Video codec for JSMpeg
             '-an',  # No audio
+            '-s', '640x480',  # Force a standard resolution
+            '-r', '25',  # Force 25 fps
         ]
         
         # Quality settings
@@ -47,14 +49,18 @@ class FFmpegProcess:
         else:
             base_cmd.extend(['-q:v', '5', '-b:v', '1500k'])
         
-        # Performance optimizations
+        # Performance optimizations for JSMpeg compatibility
         base_cmd.extend([
             '-preset', 'veryfast',
             '-tune', 'zerolatency',
-            '-g', '30',  # GOP size
+            '-g', '15',  # Smaller GOP size for lower latency
             '-bf', '0',  # No B-frames for lower latency
+            '-flags', '+cgop',  # Closed GOP for better seeking
+            '-sc_threshold', '0',  # Disable scene change detection
+            '-muxdelay', '0.1',  # Reduce muxing delay
+            '-muxpreload', '0.1',  # Reduce preload delay
             '-y',  # Overwrite output
-            'pipe:1'  # Output to stdout (more explicit)
+            'pipe:1'  # Output to stdout
         ])
         
         return base_cmd
@@ -81,6 +87,10 @@ class FFmpegProcess:
             
             self.is_running = True
             logger.info(f"FFmpeg process started with PID: {self.process.pid}")
+            
+            # Start a background task to monitor stderr
+            asyncio.create_task(self._monitor_stderr())
+            
             return True
             
         except Exception as e:
@@ -159,6 +169,20 @@ class FFmpegProcess:
     async def read_output(self):
         """Read FFmpeg output asynchronously"""
         return await asyncio.to_thread(self._read_output_sync)
+
+    async def _monitor_stderr(self):
+        """Monitor FFmpeg stderr output for debugging"""
+        try:
+            while self.is_running and self.process and self.process.poll() is None:
+                line = await asyncio.to_thread(lambda: self.process.stderr.readline())
+                if line:
+                    line_str = line.decode('utf-8', errors='ignore').strip()
+                    if line_str:
+                        logger.info(f"FFmpeg stderr: {line_str}")
+                else:
+                    break
+        except Exception as e:
+            logger.error(f"Error monitoring FFmpeg stderr: {e}")
 
     async def get_error_info(self) -> Dict[str, Any]:
         """Get error information from FFmpeg stderr"""
