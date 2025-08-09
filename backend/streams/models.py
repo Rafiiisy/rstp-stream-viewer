@@ -40,4 +40,9 @@ class Stream(models.Model):
         # Use the actual domain instead of localhost for production
         host = os.environ.get('RAILWAY_STATIC_URL', 'localhost')
         protocol = 'wss' if host != 'localhost' else 'ws'
-        return f"{protocol}://{host}/ws/stream?id={self.id}"
+        
+        # For localhost, include the port
+        if host == 'localhost':
+            return f"{protocol}://{host}:{port}/ws/stream?id={self.id}"
+        else:
+            return f"{protocol}://{host}/ws/stream?id={self.id}"

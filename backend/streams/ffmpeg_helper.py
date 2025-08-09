@@ -27,43 +27,37 @@ class FFmpegProcess:
         return url
 
     def _get_ffmpeg_command(self) -> list:
-        """Generate FFmpeg command for RTSP to MPEG-1 conversion"""
-        base_cmd = [
-            'ffmpeg',
-            '-rtsp_transport', 'tcp',  # Use TCP for better reliability
-            '-i', self.rtsp_url,
-            '-f', 'mpegts',  # MPEG-TS format for better compatibility
-            '-codec:v', 'mpeg1video',  # Video codec for JSMpeg
-            '-an',  # No audio
-            '-s', '640x480',  # Force a standard resolution
-            '-r', '25',  # Force 25 fps
+        TS_FPS = "25"        # tweak as needed
+        GOP    = "50"        # ~2x fps
+
+        return [
+            "ffmpeg",
+            "-nostdin",
+            "-loglevel", "error",
+            "-rtsp_transport", "tcp",
+            "-fflags", "nobuffer",
+            "-flags", "low_delay",
+            "-probesize", "32",
+            "-analyzeduration", "0",
+
+            "-i", self.rtsp_url,
+
+            # OUTPUT: MPEG-TS container with MPEG-1 video for JSMpeg
+            "-f", "mpegts",
+            "-codec:v", "mpeg1video",
+            "-q:v", "6",              # 2(best) … 31(worst). 6 is fine.
+            "-r", TS_FPS,             # fps
+            "-g", GOP,                # keyframe interval
+            "-bf", "0",               # no B-frames
+            "-an",                    # no audio
+            "-muxdelay", "0",
+            "-muxpreload", "0",
+
+            # Optional: fix size (uncomment if you want)
+            # "-s", "640x480",
+
+            "pipe:1",                 # stdout
         ]
-        
-        # Quality settings
-        if self.quality == 'low':
-            base_cmd.extend(['-q:v', '8', '-b:v', '500k'])
-        elif self.quality == 'medium':
-            base_cmd.extend(['-q:v', '5', '-b:v', '1500k'])
-        elif self.quality == 'high':
-            base_cmd.extend(['-q:v', '3', '-b:v', '3000k'])
-        else:
-            base_cmd.extend(['-q:v', '5', '-b:v', '1500k'])
-        
-        # Performance optimizations for JSMpeg compatibility
-        base_cmd.extend([
-            '-preset', 'veryfast',
-            '-tune', 'zerolatency',
-            '-g', '15',  # Smaller GOP size for lower latency
-            '-bf', '0',  # No B-frames for lower latency
-            '-flags', '+cgop',  # Closed GOP for better seeking
-            '-sc_threshold', '0',  # Disable scene change detection
-            '-muxdelay', '0.1',  # Reduce muxing delay
-            '-muxpreload', '0.1',  # Reduce preload delay
-            '-y',  # Overwrite output
-            'pipe:1'  # Output to stdout
-        ])
-        
-        return base_cmd
 
     def _start_process_sync(self) -> bool:
         """Start the FFmpeg process synchronously"""
@@ -87,10 +81,6 @@ class FFmpegProcess:
             
             self.is_running = True
             logger.info(f"FFmpeg process started with PID: {self.process.pid}")
-            
-            # Start a background task to monitor stderr
-            asyncio.create_task(self._monitor_stderr())
-            
             return True
             
         except Exception as e:
@@ -169,20 +159,6 @@ class FFmpegProcess:
     async def read_output(self):
         """Read FFmpeg output asynchronously"""
         return await asyncio.to_thread(self._read_output_sync)
-
-    async def _monitor_stderr(self):
-        """Monitor FFmpeg stderr output for debugging"""
-        try:
-            while self.is_running and self.process and self.process.poll() is None:
-                line = await asyncio.to_thread(lambda: self.process.stderr.readline())
-                if line:
-                    line_str = line.decode('utf-8', errors='ignore').strip()
-                    if line_str:
-                        logger.info(f"FFmpeg stderr: {line_str}")
-                else:
-                    break
-        except Exception as e:
-            logger.error(f"Error monitoring FFmpeg stderr: {e}")
 
     async def get_error_info(self) -> Dict[str, Any]:
         """Get error information from FFmpeg stderr"""
