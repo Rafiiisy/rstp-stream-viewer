@@ -106,12 +106,11 @@ CHANNEL_LAYERS = {
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "https://rstp-stream-viewer.vercel.app",
-    "https://rstp-stream-viewer-production.up.railway.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for debugging
+CORS_ALLOW_ALL_ORIGINS = False  # More secure for production
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework settings
@@ -128,25 +127,3 @@ REST_FRAMEWORK = {
 FFMPEG_TIMEOUT = 10  # seconds
 MAX_CONCURRENT_STREAMS = 10
 MAX_STREAMS_PER_CLIENT = 5
-
-# Logging configuration
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-}
