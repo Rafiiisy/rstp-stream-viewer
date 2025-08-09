@@ -3,11 +3,13 @@ import './App.css';
 import StreamGrid from './components/StreamGrid';
 import AddStreamForm from './components/AddStreamForm';
 import Header from './components/Header';
+import { NotificationProvider, useNotification } from './context/NotificationContext';
 import { config } from './config';
 
-function App() {
+function AppContent() {
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { showSuccess, showError } = useNotification();
 
   // Load streams from backend on component mount
   useEffect(() => {
@@ -30,14 +32,19 @@ function App() {
       if (response.ok) {
         const newStream = await response.json();
         setStreams(prevStreams => [...prevStreams, newStream]);
+        showSuccess('Stream added successfully');
         return { success: true };
       } else {
         const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Failed to add stream' };
+        const errorMessage = errorData.error || 'Failed to add stream';
+        showError(errorMessage);
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Error adding stream:', error);
-      return { success: false, error: 'Network error. Please check if the backend is running.' };
+      const errorMessage = 'Network error. Please check if the backend is running.';
+      showError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -51,11 +58,14 @@ function App() {
 
       if (response.ok) {
         setStreams(prevStreams => prevStreams.filter(stream => stream.id !== streamId));
+        showSuccess('Stream deleted successfully');
       } else {
+        showError('Failed to delete stream');
         console.error('Failed to remove stream');
       }
     } catch (error) {
       console.error('Error removing stream:', error);
+      showError('Network error while deleting stream');
     }
   };
 
@@ -77,14 +87,19 @@ function App() {
             stream.id === streamId ? updatedStream : stream
           )
         );
+        showSuccess('Stream edited successfully');
         return { success: true };
       } else {
         const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Failed to update stream' };
+        const errorMessage = errorData.error || 'Failed to update stream';
+        showError(errorMessage);
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Error updating stream:', error);
-      return { success: false, error: 'Network error. Please check if the backend is running.' };
+      const errorMessage = 'Network error. Please check if the backend is running.';
+      showError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -97,9 +112,12 @@ function App() {
       if (response.ok) {
         const savedStreams = await response.json();
         setStreams(savedStreams);
+      } else {
+        showError('Failed to load streams');
       }
     } catch (error) {
       console.error('Error loading saved streams:', error);
+      showError('Network error while loading streams');
     } finally {
       setLoading(false);
     }
@@ -120,6 +138,14 @@ function App() {
         />
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <NotificationProvider>
+      <AppContent />
+    </NotificationProvider>
   );
 }
 

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import StreamTile from './StreamTile';
+import { useNotification } from '../context/NotificationContext';
 import { config } from '../config';
 
 function StreamGrid({ streams, onRemoveStream, onEditStream, onLoadSavedStreams, loading }) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { showSuccess, showError } = useNotification();
 
   const handleRefresh = async () => {
     try {
@@ -15,12 +17,14 @@ function StreamGrid({ streams, onRemoveStream, onEditStream, onLoadSavedStreams,
       
       // Increment refresh key to force thumbnail re-renders
       setRefreshKey(prev => prev + 1);
+      
+      // Then refresh streams (this will trigger thumbnail reloads)
+      await onLoadSavedStreams();
+      showSuccess('Streams refreshed successfully');
     } catch (error) {
       console.error('Error clearing thumbnail cache:', error);
+      showError('Failed to refresh streams');
     }
-    
-    // Then refresh streams (this will trigger thumbnail reloads)
-    onLoadSavedStreams();
   };
 
   return (
