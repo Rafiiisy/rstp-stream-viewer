@@ -34,6 +34,10 @@ class Stream(models.Model):
     @property
     def ws_url(self):
         """Generate WebSocket URL for this stream"""
-        from django.conf import settings
-        # This will be used by the frontend to connect to the WebSocket
-        return f"ws://localhost:8000/ws/stream?id={self.id}"
+        import os
+        # Use the PORT environment variable that Railway provides
+        port = os.environ.get('PORT', '8000')
+        # Use the actual domain instead of localhost for production
+        host = os.environ.get('RAILWAY_STATIC_URL', 'localhost')
+        protocol = 'wss' if host != 'localhost' else 'ws'
+        return f"{protocol}://{host}/ws/stream?id={self.id}"
