@@ -5,7 +5,8 @@ from .views import (
     health_check,
     stream_thumbnail,
     refresh_thumbnail,
-    thumbnail_cache_stats
+    thumbnail_cache_stats,
+    clear_thumbnail_cache
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('streams/<uuid:stream_id>/thumbnail/', stream_thumbnail, name='stream-thumbnail'),
     path('streams/<uuid:stream_id>/thumbnail/refresh/', refresh_thumbnail, name='refresh-thumbnail'),
     path('thumbnails/cache/stats/', thumbnail_cache_stats, name='thumbnail-cache-stats'),
+    path('thumbnails/cache/clear/', clear_thumbnail_cache, name='clear-thumbnail-cache'),
 ]

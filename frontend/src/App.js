@@ -111,18 +111,6 @@ function App() {
       <main className="main-content">
         <AddStreamForm onAddStream={addStream} loading={loading} />
         
-        {streams.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-state-content">
-              <h3>No Streams Added</h3>
-              <p>Add an RTSP stream URL above to get started</p>
-              <div className="example-url">
-                <strong>Example:</strong> rtsp://admin:admin123@49.248.155.178:555/cam/realmonitor?channel=1&subtype=0
-              </div>
-            </div>
-          </div>
-        )}
-        
         <StreamGrid 
           streams={streams} 
           onRemoveStream={removeStream}

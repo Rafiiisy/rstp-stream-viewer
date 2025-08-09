@@ -364,7 +364,6 @@ function StreamTile({ stream, onRemove, onEdit }) {
   }, []);
 
   const getStatusText = () => {
-    console.log('Current status:', status); // Debug log
     switch (status) {
       case 'connecting':
         return 'Connecting...';
@@ -491,7 +490,6 @@ function StreamTile({ stream, onRemove, onEdit }) {
         
         {status === 'stopped' && (
           <div className="stream-overlay" style={{ zIndex: 10 }}>
-            {console.log('Rendering play button - status is stopped')}
             <button
               className="control-button play-button"
               onClick={handlePlay}

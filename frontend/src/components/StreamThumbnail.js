@@ -5,10 +5,6 @@ function StreamThumbnail({ streamId, streamUrl, onLoad, onError, className = '',
   const [thumbnail, setThumbnail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const maxRetries = 3;
-  const retryDelay = 2000; // 2 seconds
 
   const loadThumbnail = async (forceRefresh = false) => {
     try {
@@ -46,19 +42,10 @@ function StreamThumbnail({ streamId, streamUrl, onLoad, onError, className = '',
       if (onError) {
         onError(err);
       }
-
-      // Retry logic
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          loadThumbnail();
-        }, retryDelay);
-      }
     }
   };
 
   const handleRefresh = () => {
-    setRetryCount(0);
     loadThumbnail(true);
   };
 

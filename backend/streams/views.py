@@ -177,3 +177,18 @@ def thumbnail_cache_stats(request):
             {'error': f'Internal server error: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['POST'])
+def clear_thumbnail_cache(request):
+    """Clear all thumbnail cache"""
+    try:
+        thumbnail_service.clear_cache()
+        return Response(
+            {'message': 'Thumbnail cache cleared successfully'}, 
+            status=status.HTTP_200_OK
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'Internal server error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

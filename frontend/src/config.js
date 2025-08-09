@@ -22,6 +22,7 @@ export const config = {
     THUMBNAIL: (streamId) => `${API_BASE_URL}/api/streams/${streamId}/thumbnail/`,
     THUMBNAIL_REFRESH: (streamId) => `${API_BASE_URL}/api/streams/${streamId}/thumbnail/refresh/`,
     THUMBNAIL_CACHE_STATS: `${API_BASE_URL}/api/thumbnails/cache/stats/`,
+    THUMBNAIL_CACHE_CLEAR: `${API_BASE_URL}/api/thumbnails/cache/clear/`,
   },
   WS_ENDPOINTS: {
     STREAM: (id, videoOnly = false, clientId = null) => {
