@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import EditStreamModal from './EditStreamModal';
 
-function StreamTile({ stream, onRemove }) {
+function StreamTile({ stream, onRemove, onEdit }) {
   const [status, setStatus] = useState('stopped'); // stopped, connecting, playing, error
   const [errorMessage, setErrorMessage] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -12,6 +13,7 @@ function StreamTile({ stream, onRemove }) {
   const [sliderPosition, setSliderPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [frameBuffer, setFrameBuffer] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   const canvasRef = useRef(null);
   const playerRef = useRef(null);
@@ -403,6 +405,14 @@ function StreamTile({ stream, onRemove }) {
     onRemove(stream.id);
   };
 
+  const handleEdit = () => {
+    setShowEditModal(true);
+  };
+
+  const handleEditClose = () => {
+    setShowEditModal(false);
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -466,6 +476,14 @@ function StreamTile({ stream, onRemove }) {
               Retry
             </button>
           )}
+          
+          <button
+            className="control-button"
+            onClick={handleEdit}
+            title="Edit Stream"
+          >
+            ✏️ Edit
+          </button>
           
           <button
             className="control-button danger"
@@ -565,6 +583,15 @@ function StreamTile({ stream, onRemove }) {
         )}
       </div>
     </div>
+    
+    {showEditModal && (
+      <EditStreamModal
+        stream={stream}
+        onEdit={onEdit}
+        onClose={handleEditClose}
+        loading={status === 'connecting'}
+      />
+    )}
     </>
   );
 }

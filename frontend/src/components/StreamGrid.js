@@ -1,7 +1,7 @@
 import React from 'react';
 import StreamTile from './StreamTile';
 
-function StreamGrid({ streams, onRemoveStream, onLoadSavedStreams, loading }) {
+function StreamGrid({ streams, onRemoveStream, onEditStream, onLoadSavedStreams, loading }) {
   return (
     <div>
       <div className="stream-grid-header">
@@ -28,6 +28,7 @@ function StreamGrid({ streams, onRemoveStream, onLoadSavedStreams, loading }) {
             key={stream.id}
             stream={stream}
             onRemove={onRemoveStream}
+            onEdit={onEditStream}
           />
         ))}
       </div>

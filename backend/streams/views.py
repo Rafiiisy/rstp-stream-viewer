@@ -9,7 +9,26 @@ from .serializers import StreamSerializer, StreamCreateSerializer
 import subprocess
 import re
 
-class StreamListCreateView(ListCreateAPIView):
+class BaseStreamView:
+    def _validate_rtsp_url(self, url):
+        """Basic validation of RTSP URL using ffprobe"""
+        try:
+            # Use ffprobe to check if the stream is accessible
+            cmd = [
+                'ffprobe', 
+                '-v', 'quiet',
+                '-print_format', 'json',
+                '-show_streams',
+                '-rtsp_transport', 'tcp',
+                url
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+            # If ffprobe is not available, just validate URL format
+            return url.startswith('rtsp://')
+
+class StreamListCreateView(BaseStreamView, ListCreateAPIView):
     queryset = Stream.objects.filter(is_active=True)
     serializer_class = StreamSerializer
 
@@ -34,28 +53,49 @@ class StreamListCreateView(ListCreateAPIView):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _validate_rtsp_url(self, url):
-        """Basic validation of RTSP URL using ffprobe"""
-        try:
-            # Use ffprobe to check if the stream is accessible
-            cmd = [
-                'ffprobe', 
-                '-v', 'quiet',
-                '-print_format', 'json',
-                '-show_streams',
-                '-rtsp_transport', 'tcp',
-                url
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            return result.returncode == 0
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
-            # If ffprobe is not available, just validate URL format
-            return url.startswith('rtsp://')
-
-class StreamDetailView(RetrieveDestroyAPIView):
+class StreamDetailView(BaseStreamView, RetrieveDestroyAPIView):
     queryset = Stream.objects.filter(is_active=True)
     serializer_class = StreamSerializer
     lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return StreamCreateSerializer
+        return StreamSerializer
+
+    def put(self, request, *args, **kwargs):
+        """Handle PUT requests for updating streams"""
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=False)
+        if serializer.is_valid():
+            # Validate RTSP URL with ffprobe
+            url = serializer.validated_data.get('url')
+            if url and not self._validate_rtsp_url(url):
+                return Response(
+                    {'error': 'Invalid RTSP URL or stream not accessible'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            stream = serializer.save()
+            response_serializer = StreamSerializer(stream)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, *args, **kwargs):
+        """Handle PATCH requests for partial updates"""
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=True)
+        if serializer.is_valid():
+            # Validate RTSP URL with ffprobe
+            url = serializer.validated_data.get('url')
+            if url and not self._validate_rtsp_url(url):
+                return Response(
+                    {'error': 'Invalid RTSP URL or stream not accessible'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            stream = serializer.save()
+            response_serializer = StreamSerializer(stream)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         stream = self.get_object()

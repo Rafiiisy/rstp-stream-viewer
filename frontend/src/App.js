@@ -58,6 +58,37 @@ function App() {
     }
   };
 
+  const editStream = async (streamId, streamData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/streams/${streamId}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(streamData),
+      });
+
+      if (response.ok) {
+        const updatedStream = await response.json();
+        setStreams(prevStreams => 
+          prevStreams.map(stream => 
+            stream.id === streamId ? updatedStream : stream
+          )
+        );
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to update stream' };
+      }
+    } catch (error) {
+      console.error('Error updating stream:', error);
+      return { success: false, error: 'Network error. Please check if the backend is running.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadSavedStreams = async () => {
     setLoading(true);
     try {
@@ -94,6 +125,7 @@ function App() {
         <StreamGrid 
           streams={streams} 
           onRemoveStream={removeStream}
+          onEditStream={editStream}
           onLoadSavedStreams={loadSavedStreams}
           loading={loading}
         />
