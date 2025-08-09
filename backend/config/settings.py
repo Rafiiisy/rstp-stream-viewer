@@ -5,12 +5,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rtsp-stream-viewer-mvp-key-change-in-production'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-rtsp-stream-viewer-mvp-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # For MVP - restrict in production
+ALLOWED_HOSTS = ['*']  # Railway will provide the domain
 
 # Application definition
 INSTALLED_APPS = [
@@ -104,7 +104,13 @@ CHANNEL_LAYERS = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For MVP - restrict in production
+CORS_ALLOWED_ORIGINS = [
+    "https://rstp-stream-viewer.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_ALL_ORIGINS = False  # More secure for production
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework settings

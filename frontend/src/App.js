@@ -3,6 +3,7 @@ import './App.css';
 import StreamGrid from './components/StreamGrid';
 import AddStreamForm from './components/AddStreamForm';
 import Header from './components/Header';
+import { config } from './config';
 
 function App() {
   const [streams, setStreams] = useState([]);
@@ -18,7 +19,7 @@ function App() {
   const addStream = async (streamData) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/streams/', {
+      const response = await fetch(config.API_ENDPOINTS.STREAMS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ function App() {
 
   const removeStream = async (streamId) => {
     try {
-      const response = await fetch(`/api/streams/${streamId}/`, {
+      const response = await fetch(`${config.API_ENDPOINTS.STREAMS}${streamId}/`, {
         method: 'DELETE',
       });
 
@@ -61,7 +62,7 @@ function App() {
   const editStream = async (streamId, streamData) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/streams/${streamId}/`, {
+      const response = await fetch(`${config.API_ENDPOINTS.STREAMS}${streamId}/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ function App() {
   const loadSavedStreams = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/streams/');
+      const response = await fetch(config.API_ENDPOINTS.STREAMS);
       if (response.ok) {
         const savedStreams = await response.json();
         setStreams(savedStreams);

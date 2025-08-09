@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/RTSP-Stream-Viewer/static/css/main.8ae3d353.css",
+    "main.js": "/RTSP-Stream-Viewer/static/js/main.7baea6ce.js",
+    "index.html": "/RTSP-Stream-Viewer/index.html",
+    "main.8ae3d353.css.map": "/RTSP-Stream-Viewer/static/css/main.8ae3d353.css.map",
+    "main.7baea6ce.js.map": "/RTSP-Stream-Viewer/static/js/main.7baea6ce.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.8ae3d353.css",
+    "static/js/main.7baea6ce.js"
+  ]
+}

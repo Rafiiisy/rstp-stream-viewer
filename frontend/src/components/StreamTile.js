@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EditStreamModal from './EditStreamModal';
+import { config } from '../config';
 
 function StreamTile({ stream, onRemove, onEdit }) {
   const [status, setStatus] = useState('stopped'); // stopped, connecting, playing, error
@@ -27,7 +28,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
       wsRef.current.close();
     }
 
-    const wsUrl = stream.ws_url || `ws://localhost:8000/ws/stream?id=${stream.id}&video_only=false`;
+    const wsUrl = stream.ws_url || config.WS_ENDPOINTS.STREAM(stream.id, false);
     console.log('Connecting to WebSocket:', wsUrl);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -127,7 +128,7 @@ function StreamTile({ stream, onRemove, onEdit }) {
       }
 
       // Create a separate WebSocket URL for JSMpeg with video_only=true
-      const wsUrl = `ws://localhost:8000/ws/stream?id=${stream.id}&video_only=true`;
+      const wsUrl = config.WS_ENDPOINTS.STREAM(stream.id, true);
       
       console.log('Initializing JSMpeg with URL:', wsUrl);
       console.log('Canvas element:', canvasRef.current);
