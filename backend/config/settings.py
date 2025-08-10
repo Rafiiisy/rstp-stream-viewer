@@ -109,7 +109,7 @@ CHANNEL_LAYERS = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "https://rstp-stream-viewer.vercel.app",
+    "https://rtsp-stream-viewers.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
