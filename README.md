@@ -3,7 +3,7 @@
 A real-time RTSP stream viewing application with a modern web interface for monitoring multiple IP cameras simultaneously. Built with Django Channels for WebSocket streaming and React for the frontend interface.
 
 Access it here:
-https://rstp-stream-viewer.vercel.app/
+https://rtsp-stream-viewers.vercel.app/
 
 ![RTSP Stream Viewer Preview](frontend/public/preview.png)
 
@@ -196,7 +196,7 @@ sudo yum install ffmpeg
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Rafiiisy/rstp-stream-viewer
+git clone https://github.com/Rafiiisy/rtsp-stream-viewers
 cd SkylarkTest2
 ```
 
@@ -269,7 +269,7 @@ Create environment variables for production deployment:
 
 **Frontend** (`frontend/.env.local`):
 ```env
-REACT_APP_API_ENDPOINT=https://rstp-stream-viewer.vercel.app/
+REACT_APP_API_ENDPOINT=https://rtsp-stream-viewers.vercel.app/
 or for local testing
 REACT_APP_API_ENDPOINT=http://localhost:8000
 ```
@@ -284,8 +284,8 @@ REACT_APP_API_ENDPOINT=http://localhost:8000
    - API: http://localhost:8000/api/
 
 2. **Production**:
-   - Frontend: https://rstp-stream-viewer.vercel.app/
-   - Backend: https://rstp-stream-viewer-production.up.railway.app
+   - Frontend: https://rtsp-stream-viewers.vercel.app/
+   - Backend: https://rtsp-stream-viewers-production.up.railway.app
 
 ### Adding Streams
 
