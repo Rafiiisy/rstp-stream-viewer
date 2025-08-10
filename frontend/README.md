@@ -1,4 +1,4 @@
-# RSTPViewer Frontend
+# RTSPViewer Frontend
 
 React frontend for the RTSP Stream Viewer application with real-time video streaming capabilities.
 

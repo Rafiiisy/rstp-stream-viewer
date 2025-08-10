@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting RSTPViewer Frontend..."
+echo "Starting RTSPViewer Frontend..."
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then

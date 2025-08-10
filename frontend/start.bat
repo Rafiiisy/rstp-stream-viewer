@@ -1,5 +1,5 @@
 @echo off
-echo Starting RSTPViewer Frontend...
+echo Starting RTSPViewer Frontend...
 
 REM Check if node_modules exists
 if not exist "node_modules" (
